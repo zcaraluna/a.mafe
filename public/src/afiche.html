@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Alerta - Persona Desaparecida (A4)</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: white;
+      color: #222;
+    }
+
+    .contenedor {
+      width: 100%;
+      max-width: 210mm;
+      margin: auto;
+      padding: 20px;
+      box-sizing: border-box;
+      border: 3px solid #d32f2f;
+    }
+
+    .header-logotipos {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .header-logotipos .logo-pn {
+      height: 90px; /* Más grande */
+    }
+
+    .header-logotipos .logo-gob {
+      height: 60px;
+    }
+
+    .alerta-header {
+      background: linear-gradient(to right, #ffcc00, #ff6600);
+      padding: 10px;
+      text-align: center;
+      color: white;
+    }
+
+    .alerta-header h1 {
+      margin: 0;
+      font-size: 28pt;
+      font-weight: bold;
+    }
+
+    .subtitulo {
+      background-color: #d32f2f;
+      color: white;
+      font-size: 16pt;
+      text-align: center;
+      padding: 10px;
+      font-weight: bold;
+      margin-top: 10px;
+    }
+
+    .contenido {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .foto {
+      flex: 1;
+      text-align: center;
+    }
+
+    .foto img {
+      max-width: 100%;
+      height: auto;
+      border: 2px solid #999;
+    }
+
+    .info {
+      flex: 2;
+      font-size: 12pt;
+      line-height: 1.6;
+    }
+
+    .info p strong {
+      color: #000;
+    }
+
+    .detalle-final {
+      margin-top: 20px;
+      font-size: 12pt;
+      font-weight: bold;
+    }
+
+    .contacto {
+      margin-top: 25px;
+      background-color: #1976d2;
+      color: white;
+      padding: 15px;
+      text-align: center;
+      font-size: 14pt;
+      border-radius: 6px;
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 10pt;
+      color: #555;
+      margin-top: 20px;
+    }
+
+    @media print {
+      .contenedor {
+        border: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="contenedor">
+    <!-- Logos institucionales -->
+    <div class="header-logotipos">
+      <img src="pn.png" alt="Policía Nacional del Paraguay" class="logo-pn">
+      <img src="logo_gobierno-1.png" alt="Gobierno del Paraguay" class="logo-gob">
+    </div>
+
+    <div class="alerta-header">
+      <h1>Alerta: MAFE</h1>
+    </div>
+
+    <div class="subtitulo">BUSCAMOS A:</div>
+
+    <div class="contenido">
+      <div class="foto">
+        <img src="foto_persona.jpg" alt="Foto de la persona desaparecida">
+      </div>
+      <div class="info">
+        <p><strong>Nombre:</strong> Sofía Yasmín Herrera</p>
+        <p><strong>Edad:</strong> 3 años</p>
+        <p><strong>Nacionalidad:</strong> Paraguaya</p>
+        <p><strong>Fecha de extravío:</strong> 29/08/2008</p>
+        <p><strong>Género:</strong> Femenino</p>
+        <p><strong>Contextura física:</strong> Delgada</p>
+        <p><strong>Tez:</strong> Trigueña</p>
+        <p><strong>Cabello:</strong> Largo hasta los hombros, ondulado, negro</p>
+        <p><strong>Ojos:</strong> Oscuros</p>
+        <p><strong>Señas particulares:</strong> Sin señas particulares</p>
+      </div>
+    </div>
+
+    <div class="detalle-final">
+      La niña se extravió el día 29/08/2008 a las 11:30 hs en el camping “John Goodall”, ubicado a 60 km al sur de Río Grande, Tierra del Fuego, donde se encontraba con su familia.
+    </div>
+
+    <div class="contacto">
+      Si tiene información, comuníquese al <strong>911</strong> o a la comisaría más cercana.
+    </div>
+
+    <div class="footer">
+      Gobierno del Paraguay – Policía Nacional | Dirección General de Búsqueda de Personas
+    </div>
+  </div>
+
+</body>
+</html>

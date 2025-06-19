@@ -1,0 +1,201 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String
+  password      String?   // Contraseña hasheada (opcional temporalmente)
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  reports       Report[]
+  statusChangedReports Report[] @relation("StatusChangedByUser")
+  caseActions   CaseAction[]
+  moderatedComments Comment[] @relation("ModeratedComments")
+  alerts        Alert[]
+}
+
+model Report {
+  id                String   @id @default(cuid())
+  code              String?  @unique
+  status            String   @default("PENDING")
+  statusChangedBy   String?
+  statusChangedAt   DateTime?
+  statusChangedByUser User? @relation("StatusChangedByUser", fields: [statusChangedBy], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Datos del denunciante
+  reporterName      String
+  reporterLastName  String
+  reporterPhone     String
+  reporterEmail     String?
+  reporterAddress   String?
+  reporterCity      String?
+  reporterState     String?
+  reporterZipCode   String?
+  department        String?
+  reporterIdFront   String?
+  reporterIdBack    String?
+  reporterIdNumber  String?
+  reporterIp        String?
+  reporterUserAgent String?
+  reporterDeviceType String?
+  reporterIsProxy   Boolean  @default(false)
+  reporterVpnProvider String?
+  reporterNationality String?
+  
+  // Datos de la persona desaparecida
+  missingName       String
+  missingLastName   String
+  missingBirthDate  DateTime
+  missingGender     String
+  missingHeight     Float?
+  missingWeight     Float?
+  missingClothing   String?
+  missingLastSeen   DateTime?
+  missingLastLocation String?
+  missingDescription String?
+  missingNationality String?
+  
+  // Nuevos campos para características físicas
+  eyeColor          String?  // marrón, ámbar, verde, avellana, azul, gris, otros
+  hairType          String?  // liso, ondulado, rizado, afro
+  hairLength        String?  // largo, mediano, corto
+  hairColor         String?  // negro, castaño, rubio, pelirrojo, teñido, otros
+  skinColor         String?  // clara, media, morena, oscura, otros
+  otherFeatures     String?  // campo libre para otras características
+  
+  // Relaciones
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  comments          Comment[]
+  photos            Photo[]
+  reporterLatitude  Float?
+  reporterLongitude Float?
+  caseActions       CaseAction[]
+  publicado         Boolean  @default(false)
+  relatoPublico     String?
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  ip        String
+  userAgent String?
+  deviceType String?
+  isProxy   Boolean  @default(false)
+  vpnProvider String?
+  createdAt DateTime @default(now())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id])
+  nombre    String?
+  apellido  String?
+  cedula    String?
+  telefono  String?
+  anonimo   Boolean  @default(false)
+  status    CommentStatus @default(PENDIENTE)
+  moderatedById String?
+  moderatedBy   User?    @relation("ModeratedComments", fields: [moderatedById], references: [id])
+  moderatedAt   DateTime?
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  url       String
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id])
+  publica   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model CaseAction {
+  id          String   @id @default(cuid())
+  report      Report   @relation(fields: [reportId], references: [id])
+  reportId    String
+  user        User?    @relation(fields: [userId], references: [id])
+  userId      String?
+  action      String   // Ej: 'APROBADO', 'RECHAZADO', 'CERRADO_VIVA', 'CERRADO_FALLECIDA', 'NOTA'
+  note        String?  // Nota interna opcional
+  createdAt   DateTime @default(now())
+}
+
+model Alert {
+  id           String      @id @default(cuid())
+  nombre       String
+  apellido     String
+  alias        String?
+  fechaNacimiento DateTime?
+  genero       String
+  nacionalidad String      @default("Paraguaya")
+  documentoIdentidad String?
+  departamentos String[]
+  relato       String?
+  motivo       String
+  motivoOrdenCaptura String?
+  nivelPeligrosidad NivelPeligrosidad @default(MEDIO)
+  estado       AlertStatus @default(ACTIVA)
+  observacionesInternas String?
+  altura       Float?
+  peso         Float?
+  colorOjos    String?
+  colorCabello String?
+  tipoCabello  String?
+  seniasParticulares String?
+  fotos        AlertPhoto[]
+  publicadaPorId String?
+  publicadaPor   User?    @relation(fields: [publicadaPorId], references: [id])
+  publicadaEn    DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  fotoPrincipal String?
+}
+
+model AlertPhoto {
+  id        String   @id @default(cuid())
+  url       String
+  publica   Boolean  @default(true)
+  alertId   String
+  alert     Alert    @relation(fields: [alertId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Status {
+  PENDING
+  APPROVED
+  REJECTED
+  CERRADO_VIVA
+  CERRADO_FALLECIDA
+}
+
+enum CommentStatus {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+  INTERNO
+}
+
+enum AlertStatus {
+  ACTIVA
+  RESUELTA
+  ARCHIVADA
+}
+
+enum NivelPeligrosidad {
+  BAJO
+  MEDIO
+  ALTO
+  EXTREMO
+} 
