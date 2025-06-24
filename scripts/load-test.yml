@@ -1,0 +1,150 @@
+config:
+  target: 'http://localhost:3000'
+  phases:
+    - duration: 60
+      arrivalRate: 10
+      name: "Fase de carga normal"
+    - duration: 30
+      arrivalRate: 50
+      name: "Fase de estrés"
+    - duration: 30
+      arrivalRate: 100
+      name: "Fase de pico"
+  defaults:
+    headers:
+      User-Agent: 'Artillery Security Test'
+  processor: './scripts/security-processor.js'
+
+scenarios:
+  - name: "Pruebas de seguridad - Endpoints públicos"
+    weight: 40
+    flow:
+      - get:
+          url: "/"
+          expect:
+            - statusCode: 200
+            - hasHeader: "X-Frame-Options"
+            - hasHeader: "X-Content-Type-Options"
+            - hasHeader: "X-XSS-Protection"
+      
+      - get:
+          url: "/denuncias"
+          expect:
+            - statusCode: 200
+            - hasHeader: "Content-Security-Policy"
+      
+      - get:
+          url: "/terminos"
+          expect:
+            - statusCode: 200
+            - hasHeader: "Referrer-Policy"
+
+  - name: "Pruebas de seguridad - API endpoints"
+    weight: 30
+    flow:
+      - get:
+          url: "/api/denuncias/publicadas"
+          expect:
+            - statusCode: 200
+            - hasHeader: "Cache-Control"
+      
+      - get:
+          url: "/api/alertas"
+          expect:
+            - statusCode: 200
+            - hasHeader: "X-Content-Type-Options"
+      
+      - post:
+          url: "/api/denuncias/codigo"
+          json:
+            code: "DEN-20250101-TEST"
+          expect:
+            - statusCode: [200, 404]
+            - hasHeader: "Content-Type"
+
+  - name: "Pruebas de rate limiting"
+    weight: 20
+    flow:
+      - function: "testRateLimiting"
+      
+      - post:
+          url: "/api/denuncias"
+          multipart:
+            name: "Test User"
+            lastName: "Test Last"
+            documentType: "CEDULA DE IDENTIDAD"
+            id: "12345678"
+            birthDate: "1990-01-01"
+            maritalStatus: "SOLTERO"
+            gender: "MASCULINO"
+            phone: "0981123456"
+            address: "Test Address"
+            department: "Central"
+            nationality: "Paraguaya"
+            missingName: "Test Missing"
+            missingLastName: "Test Missing Last"
+            missingBirthDate: "2010-01-01"
+            missingGender: "MASCULINO"
+            eyeColor: "MARRONES"
+            hairType: "LISO"
+            hairLength: "CORTO"
+            hairColor: "NEGRO"
+            skinColor: "BLANCA"
+            relationship: "PADRE"
+            story: "Test story with more than 50 characters to meet validation requirements"
+            missingWeight: "30"
+            missingHeight: "120"
+            missingNationality: "Paraguaya"
+          expect:
+            - statusCode: [200, 429]
+            - hasHeader: "X-RateLimit-Limit"
+
+  - name: "Pruebas de autenticación"
+    weight: 10
+    flow:
+      - get:
+          url: "/login"
+          expect:
+            - statusCode: 200
+            - hasHeader: "X-Frame-Options"
+      
+      - post:
+          url: "/api/auth/signin"
+          json:
+            username: "testuser"
+            password: "wrongpassword"
+          expect:
+            - statusCode: [401, 403]
+            - hasHeader: "X-Content-Type-Options"
+
+  - name: "Pruebas de headers de seguridad"
+    weight: 5
+    flow:
+      - function: "testSecurityHeaders"
+      
+      - get:
+          url: "/api/uploads/test.jpg"
+          expect:
+            - statusCode: [200, 404]
+            - hasHeader: "Cache-Control"
+            - hasHeader: "X-Content-Type-Options"
+
+  - name: "Pruebas de detección de actividad sospechosa"
+    weight: 5
+    flow:
+      - get:
+          url: "/admin"
+          headers:
+            User-Agent: "sqlmap/1.0"
+          expect:
+            - statusCode: [200, 401, 403, 404]
+      
+      - get:
+          url: "/.env"
+          expect:
+            - statusCode: [404, 403]
+      
+      - get:
+          url: "/wp-admin"
+          expect:
+            - statusCode: [404, 403] 

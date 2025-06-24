@@ -4,6 +4,7 @@ import { writeFile } from 'fs/promises';
 import path from 'path';
 import { detectDeviceInfo } from 'lib/device-utils';
 import { checkProxyOrVPN } from 'lib/proxy-vpn-check';
+import { validateAndProcessImage, generateSafeFileName } from 'lib/file-validation';
 
 function generarCodigoDenuncia() {
   const fecha = new Date().toISOString().slice(0,10).replace(/-/g, '');
@@ -41,23 +42,39 @@ export async function POST(req: NextRequest) {
     const reporterDepartment = formData.get('department') as string | null;
     const reporterNationality = formData.get('nationality') as string;
 
-    // Guardar imágenes de cédula
+    // Guardar imágenes de cédula con validación segura
     const idFrontFile = formData.get('idFront') as File | null;
     const idBackFile = formData.get('idBack') as File | null;
     let idFrontUrl = '';
     let idBackUrl = '';
+    
     if (idFrontFile && idFrontFile.size > 0) {
-      const buffer = Buffer.from(await idFrontFile.arrayBuffer());
-      const fileName = `idFront_${Date.now()}_${idFrontFile.name}`;
+      const validation = await validateAndProcessImage(idFrontFile);
+      if (!validation.isValid) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: `Error en foto de cédula (frente): ${validation.error}` 
+        }, { status: 400 });
+      }
+      
+      const fileName = generateSafeFileName(idFrontFile.name, 'idFront_');
       const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
-      await writeFile(filePath, buffer);
+      await writeFile(filePath, validation.processedBuffer!);
       idFrontUrl = `/uploads/${fileName}`;
     }
+    
     if (idBackFile && idBackFile.size > 0) {
-      const buffer = Buffer.from(await idBackFile.arrayBuffer());
-      const fileName = `idBack_${Date.now()}_${idBackFile.name}`;
+      const validation = await validateAndProcessImage(idBackFile);
+      if (!validation.isValid) {
+        return NextResponse.json({ 
+          ok: false, 
+          error: `Error en foto de cédula (dorso): ${validation.error}` 
+        }, { status: 400 });
+      }
+      
+      const fileName = generateSafeFileName(idBackFile.name, 'idBack_');
       const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
-      await writeFile(filePath, buffer);
+      await writeFile(filePath, validation.processedBuffer!);
       idBackUrl = `/uploads/${fileName}`;
     }
 
@@ -82,15 +99,24 @@ export async function POST(req: NextRequest) {
     const missingWeight = formData.get('missingWeight') as string | null;
     const missingHeight = formData.get('missingHeight') as string | null;
 
-    // Guardar fotos del menor
+    // Guardar fotos del menor con validación segura
     const missingPhotosFiles = formData.getAll('missingPhotos') as File[];
     const missingPhotosUrls: string[] = [];
-    for (const file of missingPhotosFiles) {
+    
+    for (let i = 0; i < missingPhotosFiles.length; i++) {
+      const file = missingPhotosFiles[i];
       if (file && file.size > 0) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const fileName = `missing_${Date.now()}_${file.name}`;
+        const validation = await validateAndProcessImage(file);
+        if (!validation.isValid) {
+          return NextResponse.json({ 
+            ok: false, 
+            error: `Error en foto ${i + 1}: ${validation.error}` 
+          }, { status: 400 });
+        }
+        
+        const fileName = generateSafeFileName(file.name, 'missing_');
         const filePath = path.join(process.cwd(), 'public', 'uploads', fileName);
-        await writeFile(filePath, buffer);
+        await writeFile(filePath, validation.processedBuffer!);
         missingPhotosUrls.push(`/uploads/${fileName}`);
       }
     }
