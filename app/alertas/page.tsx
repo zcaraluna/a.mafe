@@ -214,7 +214,7 @@ export default function Alertas() {
     <div className="min-h-[90vh] bg-gray-50">
       <NavBar />
       {/* Banner principal de ancho completo */}
-      <div className="relative w-full h-48 mb-6">
+      <div className="relative w-full h-48 mb-6 mt-16">
         <img
           src="/src/Gobierno_del_Paraguay_Palacio.jpg"
           alt="Gobierno del Paraguay"

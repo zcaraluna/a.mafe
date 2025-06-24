@@ -34,7 +34,9 @@ const missingSchema = z.object({
   missingName: z.string().min(2, 'El nombre es requerido'),
   missingLastName: z.string().min(2, 'El apellido es requerido'),
   missingDocumentType: z.enum(['', 'CEDULA DE IDENTIDAD', 'PASAPORTE']).optional(),
-  missingId: z.string().min(5, 'El número de documento debe tener entre 5 y 16 caracteres').max(16, 'El número de documento debe tener entre 5 y 16 caracteres').optional(),
+  missingId: z.string().optional().refine(val => !val || (val.length >= 5 && val.length <= 16), {
+    message: 'El número de documento debe tener entre 5 y 16 caracteres si se proporciona'
+  }),
   missingBirthDate: z.string(),
   missingGender: z.string(),
   missingPhone: z.string().optional(),
@@ -177,7 +179,7 @@ export default function Home() {
 
   const textos = {
     es: {
-      titulo: "Sistema de Denuncias de Niños, Niñas y Adolescentes Desaparecidos",
+      titulo: "Servicio Web Policial Para el Reporte de Personas Desaparecidas y Encontradas",
       subtitulo: "Alerta MAFE",
       datosDenunciante: "Datos del Denunciante",
       nombres: "Nombres",
@@ -272,7 +274,7 @@ export default function Home() {
       minimo4Fotos: "Debe subir al menos 4 fotografías del desaparecido",
     },
     en: {
-      titulo: "System for Reporting Missing Children and Adolescents",
+      titulo: "Police Web Service for Missing and Found Persons Reporting",
       subtitulo: "MAFE Alert",
       datosDenunciante: "Reporter Information",
       nombres: "First Name(s)",
@@ -367,7 +369,7 @@ export default function Home() {
       minimo4Fotos: "You must upload at least 4 photographs of the missing person",
     },
     gn: {
-      titulo: "Mitã'i, mitãkuña ha mitãrusukuéra ndoguerekóiha rehegua momarandu",
+      titulo: "Tembiasakue ñemombe’u hag̃ua mba’e’ỹva ha jejuhúva rehegua, Policía rembipurupyahu rupive",
       subtitulo: "MAFE Ñemomarandu",
       datosDenunciante: "Omoñe'ẽva rehegua marandu",
       nombres: "Téra",
@@ -462,7 +464,7 @@ export default function Home() {
       minimo4Fotos: "Tekotevẽ emoĩ 4 ta'anga ndoguerekóiva rehegua",
     },
     pt: {
-      titulo: "Sistema de Denúncia de Crianças e Adolescentes Desaparecidos",
+      titulo: "Serviço da Web da polícia para relatórios de pessoas desaparecidas e encontradas",
       subtitulo: "Alerta MAFE",
       datosDenunciante: "Dados do Denunciante",
       nombres: "Nome(s)",
@@ -560,7 +562,13 @@ export default function Home() {
 
   const onSubmitReporter = async (data: any) => {
     setStep(2);
-    scrollToTop();
+    // Esperar a que el DOM se actualice antes de hacer scroll
+    setTimeout(() => {
+      const formElement = document.getElementById('missing-person-form');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const onSubmitMissing = async (data: any) => {
@@ -572,8 +580,23 @@ export default function Home() {
       alert(textos[language].minimo4Fotos);
       return;
     }
-    setStep(3);
-    scrollToTop();
+    
+    // Primero hacemos scroll al inicio para evitar problemas de posición
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Esperamos a que el scroll termine
+    setTimeout(() => {
+      // Cambiamos el paso
+      setStep(3);
+      
+      // Esperamos a que el DOM se actualice con el nuevo paso
+      setTimeout(() => {
+        const previewSection = document.querySelector('.space-y-6 h2');
+        if (previewSection) {
+          previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }, 500);
   };
 
   const handleFinalSubmit = async () => {
@@ -584,16 +607,40 @@ export default function Home() {
     setShowLegalModal(true);
   };
 
-  const handleGoBack = () => {
-    const formData = missingForm.getValues();
-    setStep(1);
-    scrollToTop();
-    // Preservar los valores del formulario
+  const handleBackToReporterForm = () => {
+    // Primero, hacemos scroll al inicio para evitar problemas de posición
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Esperamos a que el scroll termine
     setTimeout(() => {
+      // Cambiamos el paso
+      setStep(1);
+      
+      // Esperamos a que el DOM se actualice con el nuevo paso
+      setTimeout(() => {
+        const reporterForm = document.getElementById('reporter-form');
+        if (reporterForm) {
+          reporterForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }, 500);
+  };
+
+  const handleGoBackToMissing = () => {
+    const formData = missingForm.getValues();
+    setStep(2);
+    
+    // Esperar a que el DOM se actualice antes de hacer scroll
+    setTimeout(() => {
+      const formElement = document.getElementById('missing-person-form');
+      if (formElement) {
+        formElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // Preservar los valores del formulario
       Object.entries(formData).forEach(([key, value]) => {
         missingForm.setValue(key as keyof typeof formData, value, { shouldValidate: false });
       });
-    }, 0);
+    }, 100);
   };
 
   const handleLegalAccept = async () => {
@@ -642,7 +689,7 @@ export default function Home() {
     <>
       <NavBar />
       {/* Banner principal de ancho completo */}
-      <div className="relative w-full h-32 sm:h-48 mb-4 sm:mb-6">
+      <div className="relative w-full h-32 sm:h-48 mb-4 sm:mb-6 mt-16">
         <img
           src="/src/Gobierno_del_Paraguay_Palacio.jpg"
           alt="Gobierno del Paraguay"
@@ -658,6 +705,16 @@ export default function Home() {
       {/* CONTENIDO PRINCIPAL */}
       <main className="min-h-screen p-4 sm:p-8">
         <div className="max-w-2xl mx-auto">
+          {/* Enlace para acceder a denuncias existentes */}
+          <div className="text-center mb-6">
+            <a
+              href="/denuncias/codigo"
+              className="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            >
+              ¿Ya tiene un código de denuncia? Acceda aquí
+            </a>
+          </div>
+
           <div className="flex flex-col items-center mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-center px-2">
               {textos[language].titulo}
@@ -669,7 +726,7 @@ export default function Home() {
           </div>
 
           {step === 1 ? (
-            <form onSubmit={reporterForm.handleSubmit(onSubmitReporter)} className="space-y-6">
+            <form id="reporter-form" onSubmit={reporterForm.handleSubmit(onSubmitReporter)} className="space-y-6 scroll-mt-24">
               <h2 className="text-2xl font-semibold mb-4">
                 {textos[language].datosDenunciante}
               </h2>
@@ -887,7 +944,7 @@ export default function Home() {
               </div>
             </form>
           ) : step === 2 ? (
-            <form onSubmit={missingForm.handleSubmit(onSubmitMissing)} className="space-y-6">
+            <form id="missing-person-form" onSubmit={missingForm.handleSubmit(onSubmitMissing)} className="space-y-6 scroll-mt-24">
               <h2 className="text-2xl font-semibold mb-4">
                 {textos[language].datosDesaparecido}
               </h2>
@@ -1149,7 +1206,7 @@ export default function Home() {
               <div className="flex justify-between items-center">
                 <button
                   type="button"
-                  onClick={handleGoBack}
+                  onClick={handleBackToReporterForm}
                   className="bg-gray-500 text-white py-2 px-6 rounded hover:bg-gray-600"
                 >
                   Volver
@@ -1277,7 +1334,7 @@ export default function Home() {
               <div className="flex justify-between items-center">
                 <button
                   type="button"
-                  onClick={handleGoBack}
+                  onClick={handleGoBackToMissing}
                   className="bg-gray-500 text-white py-2 px-6 rounded hover:bg-gray-600"
                 >
                   Volver

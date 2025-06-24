@@ -115,7 +115,7 @@ export default function NavBar() {
   };
 
   return (
-    <nav className="w-full bg-blue-900 text-white sticky top-0 z-50 shadow">
+    <nav className="w-full bg-blue-900 text-white fixed top-0 left-0 z-50 shadow">
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center">
           <Link href="/" className="font-bold text-lg tracking-wide hover:underline mr-4">{t.inicio}</Link>
@@ -137,6 +137,7 @@ export default function NavBar() {
           )}
           <Link href="/denuncias" className="hover:underline">{t.verCasos}</Link>
           <Link href="/alertas" className="hover:underline">{t.verAlertas}</Link>
+          <Link href="/denuncias/codigo" className="hover:underline text-yellow-300">Mi denuncia</Link>
         </div>
 
         <div className="flex items-center gap-4">
@@ -214,6 +215,9 @@ export default function NavBar() {
             </Link>
             <Link href="/alertas" className="block hover:bg-blue-700 px-3 py-2 rounded" onClick={closeMenu}>
               Ver alertas
+            </Link>
+            <Link href="/denuncias/codigo" className="block hover:bg-blue-700 px-3 py-2 rounded text-yellow-300" onClick={closeMenu}>
+              Mi denuncia
             </Link>
           </div>
         </div>

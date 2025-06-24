@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import NavBar from '../../../components/NavBar';
 import { useSession } from 'next-auth/react';
 import { useLanguage } from '../../../components/LanguageSelector';
+import { formatDateTime, formatDate } from '../../../lib/date-utils';
 
 const textos = {
   es: {
@@ -474,7 +475,7 @@ export default function DetalleDenuncia() {
     <div className="min-h-screen bg-gray-50">
       <NavBar />
       {/* Banner principal de ancho completo */}
-      <div className="relative w-full h-48 mb-6">
+      <div className="relative w-full h-48 mb-6 mt-16">
         <img
           src="/src/Gobierno_del_Paraguay_Palacio.jpg"
           alt="Gobierno del Paraguay"
@@ -540,7 +541,7 @@ export default function DetalleDenuncia() {
             if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
             return age;
           })()} años</span></div>
-          <div>{textos[language].fechaDesaparicion} <span className="font-semibold">{new Date(report.createdAt).toLocaleDateString()}</span></div>
+          <div>{textos[language].fechaDesaparicion} <span className="font-semibold">{formatDate(report.missingLastSeen)}</span></div>
         </div>
         {/* Relato público */}
         <div className="mb-6">
@@ -580,7 +581,7 @@ export default function DetalleDenuncia() {
                   <li key={c.id || i} className="bg-yellow-50 p-3 rounded border shadow-sm relative">
                     <div className="text-gray-800 font-semibold mb-1">{c.anonimo ? textos[language].anonimo : `${c.nombre} ${c.apellido}`}</div>
                     <div className="text-gray-700 whitespace-pre-line">{c.content}</div>
-                    <div className="text-xs text-gray-400 mt-1">{new Date(c.createdAt).toLocaleString()}</div>
+                    <div className="text-xs text-gray-400 mt-1">{formatDateTime(c.createdAt)}</div>
                     {isAdmin && (c.nombre || c.apellido || c.cedula || c.telefono || c.ip) && (
                       <div className="text-gray-700 text-sm mb-1">
                         {c.nombre && <span>{textos[language].nombre} {c.nombre} </span>}
@@ -604,7 +605,7 @@ export default function DetalleDenuncia() {
                         )}
                         {c.moderatedBy && c.moderatedAt && (
                           <div className="mt-2 text-gray-500 text-xs">
-                            {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {new Date(c.moderatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} {textos[language].aLas} {new Date(c.moderatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                            {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {formatDateTime(c.moderatedAt)}
                           </div>
                         )}
                       </div>
@@ -638,7 +639,7 @@ export default function DetalleDenuncia() {
                 <li key={c.id || i} className="bg-gray-50 p-3 rounded border shadow-sm relative">
                   <div className="text-gray-800 font-semibold mb-1">{c.anonimo ? textos[language].anonimo : `${c.nombre} ${c.apellido}`}</div>
                   <div className="text-gray-700 whitespace-pre-line">{c.content}</div>
-                  <div className="text-xs text-gray-400 mt-1">{new Date(c.createdAt).toLocaleString()}</div>
+                  <div className="text-xs text-gray-400 mt-1">{formatDateTime(c.createdAt)}</div>
                   {isAdmin && (c.nombre || c.apellido || c.cedula || c.telefono || c.ip) && (
                     <div className="text-gray-700 text-sm mb-1">
                       {c.nombre && <span>{textos[language].nombre} {c.nombre} </span>}
@@ -662,7 +663,7 @@ export default function DetalleDenuncia() {
                       )}
                       {c.moderatedBy && c.moderatedAt && (
                         <div className="mt-2 text-gray-500 text-xs">
-                          {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {new Date(c.moderatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} {textos[language].aLas} {new Date(c.moderatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {formatDateTime(c.moderatedAt)}
                         </div>
                       )}
                     </div>
@@ -689,7 +690,7 @@ export default function DetalleDenuncia() {
                   <li key={c.id || i} className="bg-blue-50 p-3 rounded border shadow-sm relative">
                     <div className="text-gray-800 font-semibold mb-1">{c.anonimo ? textos[language].anonimo : `${c.nombre} ${c.apellido}`}</div>
                     <div className="text-gray-700 whitespace-pre-line">{c.content}</div>
-                    <div className="text-xs text-gray-400 mt-1">{new Date(c.createdAt).toLocaleString()}</div>
+                    <div className="text-xs text-gray-400 mt-1">{formatDateTime(c.createdAt)}</div>
                     <div className="text-gray-700 text-sm mb-1">
                       {c.nombre && <span>{textos[language].nombre} {c.nombre} </span>}
                       {c.apellido && <span>{textos[language].apellido} {c.apellido} </span>}
@@ -712,7 +713,7 @@ export default function DetalleDenuncia() {
                       )}
                       {c.moderatedBy && c.moderatedAt && (
                         <div className="mt-2 text-gray-500 text-xs">
-                          {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {new Date(c.moderatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} {textos[language].aLas} {new Date(c.moderatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {formatDateTime(c.moderatedAt)}
                         </div>
                       )}
                     </div>
@@ -739,7 +740,7 @@ export default function DetalleDenuncia() {
                   <li key={c.id || i} className="bg-red-50 p-3 rounded border shadow-sm relative">
                     <div className="text-gray-800 font-semibold mb-1">{c.anonimo ? textos[language].anonimo : `${c.nombre} ${c.apellido}`}</div>
                     <div className="text-gray-700 whitespace-pre-line">{c.content}</div>
-                    <div className="text-xs text-gray-400 mt-1">{new Date(c.createdAt).toLocaleString()}</div>
+                    <div className="text-xs text-gray-400 mt-1">{formatDateTime(c.createdAt)}</div>
                     <div className="text-gray-700 text-sm mb-1">
                       {c.nombre && <span>{textos[language].nombre} {c.nombre} </span>}
                       {c.apellido && <span>{textos[language].apellido} {c.apellido} </span>}
@@ -762,7 +763,7 @@ export default function DetalleDenuncia() {
                       )}
                       {c.moderatedBy && c.moderatedAt && (
                         <div className="mt-2 text-gray-500 text-xs">
-                          {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {new Date(c.moderatedAt).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })} {textos[language].aLas} {new Date(c.moderatedAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                          {textos[language].moderadoPor} <b>{c.moderatedBy.name}</b>, {formatDateTime(c.moderatedAt)}
                         </div>
                       )}
                     </div>

@@ -6,6 +6,7 @@ import NavBar from '../../../components/NavBar';
 import Link from "next/link";
 import AlertModal from '../../components/AlertModal';
 import { useLanguage } from '../../../components/LanguageSelector';
+import { formatDateTime, formatDate } from "../../../lib/date-utils";
 
 interface Foto {
   url: string;
@@ -231,6 +232,17 @@ function getImageUrl(url: string) {
   return url;
 }
 
+const calculateAge = (birthDate: string) => {
+  const birthday = new Date(birthDate);
+  const today = new Date();
+  let age = today.getFullYear() - birthday.getFullYear();
+  const m = today.getMonth() - birthday.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birthday.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 export default function AlertaPerfil() {
   const params = useParams();
   const [alerta, setAlerta] = useState<AlertData | null>(null);
@@ -274,18 +286,6 @@ export default function AlertaPerfil() {
     return <div className="p-8 text-center text-gray-500">Cargando...</div>;
   }
 
-  const edad = (() => {
-    if (!alerta.fechaNacimiento) return null;
-    const hoy = new Date();
-    const fechaNac = new Date(alerta.fechaNacimiento);
-    let edad = hoy.getFullYear() - fechaNac.getFullYear();
-    const m = hoy.getMonth() - fechaNac.getMonth();
-    if (m < 0 || (m === 0 && hoy.getDate() < fechaNac.getDate())) {
-      edad--;
-    }
-    return edad;
-  })();
-
   const getNivelPeligrosidadColor = (nivel: string) => {
     switch (nivel) {
       case 'BAJO':
@@ -305,7 +305,7 @@ export default function AlertaPerfil() {
     <div className="min-h-screen bg-gray-50 pb-24">
       <NavBar />
       {/* Banner principal de ancho completo */}
-      <div className="relative w-full h-48 mb-6">
+      <div className="relative w-full h-48 mb-6 mt-16">
         <img
           src="/src/Gobierno_del_Paraguay_Palacio.jpg"
           alt="Gobierno del Paraguay"
@@ -340,27 +340,25 @@ export default function AlertaPerfil() {
         )}
         {/* Nombre y datos principales */}
         <div className="text-center mb-4">
-          <h1 className="text-3xl font-bold text-blue-900 mb-1 uppercase">{alerta.nombre} {alerta.apellido}</h1>
-          {alerta.alias && <div className="text-gray-500 text-base mb-2 italic">{textos[language].alias} {alerta.alias}</div>}
-          <div className="text-gray-700 text-lg mb-1">
-            {alerta.genero && <span>{textos[language].genero} {GENERO_TRAD[alerta.genero]?.[language] || alerta.genero}</span>}
-            {edad !== null && <span> &nbsp;|&nbsp; {textos[language].edad} {edad}</span>}
-            {alerta.fechaNacimiento && <span> &nbsp;|&nbsp; {textos[language].nacimiento} {new Date(alerta.fechaNacimiento).toLocaleDateString()}</span>}
-          </div>
-          <div className="text-gray-700 text-base mb-1">
-            {alerta.nacionalidad && (
-              <span>
-                {textos[language].nacionalidad} {NACIONALIDAD_TRAD[alerta.nacionalidad]
-                  ? `${NACIONALIDAD_TRAD[alerta.nacionalidad].flag} ${NACIONALIDAD_TRAD[alerta.nacionalidad][language]}`
-                  : alerta.nacionalidad}
-              </span>
-            )}
-            {alerta.documentoIdentidad && <span> &nbsp;|&nbsp; {textos[language].documento} {alerta.documentoIdentidad}</span>}
-          </div>
-          <div className="text-gray-700 text-base mb-1">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">{alerta.nombre} {alerta.apellido}</h1>
+          {alerta.alias && <p className="text-lg text-gray-600 mt-1">{textos[language].alias} {alerta.alias}</p>}
+        </div>
+        <div className="text-center text-gray-600 text-sm sm:text-base mt-4 space-y-1">
+          <p>
+            <span className="font-semibold">{textos[language].genero}</span> {GENERO_TRAD[alerta.genero]?.[language] || alerta.genero} | 
+            <span className="font-semibold ml-2">{textos[language].edad}</span> {calculateAge(alerta.fechaNacimiento)} años | 
+            <span className="font-semibold ml-2">{textos[language].nacimiento}</span> {formatDate(alerta.fechaNacimiento)}
+          </p>
+          <p>
+            <span className="font-semibold">{textos[language].nacionalidad}</span> {NACIONALIDAD_TRAD[alerta.nacionalidad]
+              ? `${NACIONALIDAD_TRAD[alerta.nacionalidad].flag} ${NACIONALIDAD_TRAD[alerta.nacionalidad][language]}`
+              : alerta.nacionalidad} | 
+            <span className="font-semibold ml-2">{textos[language].documento}</span> {alerta.documentoIdentidad || textos[language].nDesconocido}
+          </p>
+          <p>
             {alerta.departamentos && <span>{textos[language].departamentos} {Array.isArray(alerta.departamentos) ? alerta.departamentos.join(', ') : alerta.departamentos}</span>}
-          </div>
-          <div className="text-gray-700 text-base mb-1">
+          </p>
+          <p>
             <span>{textos[language].motivo} <span className="font-semibold">{(() => {
               const idx = MOTIVOS_ALERTA_TRAD['es'].indexOf(alerta.motivo);
               if (idx !== -1) return MOTIVOS_ALERTA_TRAD[language][idx];
@@ -370,7 +368,7 @@ export default function AlertaPerfil() {
             {alerta.motivo === MOTIVOS_ALERTA_TRAD['es'][0] && alerta.motivoOrdenCaptura && (
               <span> &nbsp;|&nbsp; {alerta.motivoOrdenCaptura}</span>
             )}
-          </div>
+          </p>
           {/* Badge de nivel de peligrosidad */}
           <div className="mb-2">
             <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getNivelPeligrosidadColor(alerta.nivelPeligrosidad)}`}>{textos[language].nivelPeligrosidad} {PELIGROSIDAD_TRAD[alerta.nivelPeligrosidad]?.[language] || alerta.nivelPeligrosidad}</span>
@@ -401,7 +399,7 @@ export default function AlertaPerfil() {
             {isAdmin && (
               <div className="mb-2 text-sm text-gray-500">
                 <span className="font-semibold">{textos[language].publicadoPor}</span> {alerta.publicadaPor?.name || textos[language].nDesconocido} ({alerta.publicadaPor?.email || textos[language].nNA})<br />
-                <span className="font-semibold">{textos[language].fechaPublicacion}</span> {alerta.publicadaEn ? new Date(alerta.publicadaEn).toLocaleString() : textos[language].nNA}
+                <span className="font-semibold">{textos[language].fechaPublicacion}</span> {alerta.publicadaEn ? formatDateTime(alerta.publicadaEn) : textos[language].nNA}
               </div>
             )}
           </div>

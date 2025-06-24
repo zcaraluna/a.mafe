@@ -8,102 +8,137 @@ generator client {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String
-  password      String?   // Contraseña hasheada (opcional temporalmente)
-  role          Role      @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  reports       Report[]
-  statusChangedReports Report[] @relation("StatusChangedByUser")
-  caseActions   CaseAction[]
-  moderatedComments Comment[] @relation("ModeratedComments")
-  alerts        Alert[]
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  name                 String
+  password             String?
+  role                 Role      @default(USER)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  reports              Report[]
+  statusChangedReports Report[]  @relation("StatusChangedByUser")
+  caseActions          CaseAction[]
+  moderatedComments    Comment[] @relation("ModeratedComments")
+  alerts               Alert[]
+  internalNotes        InternalNote[]
+  attachments          Attachment[]
 }
 
 model Report {
-  id                String   @id @default(cuid())
-  code              String?  @unique
-  status            String   @default("PENDING")
-  statusChangedBy   String?
-  statusChangedAt   DateTime?
-  statusChangedByUser User? @relation("StatusChangedByUser", fields: [statusChangedBy], references: [id])
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
+  id                  String    @id @default(cuid())
+  code                String?   @unique
+  status              String    @default("PENDING")
+  statusChangedBy     String?
+  statusChangedAt     DateTime?
+  statusChangedByUser User?     @relation("StatusChangedByUser", fields: [statusChangedBy], references: [id])
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
   // Datos del denunciante
-  reporterName      String
-  reporterLastName  String
-  reporterPhone     String
-  reporterEmail     String?
-  reporterAddress   String?
-  reporterCity      String?
-  reporterState     String?
-  reporterZipCode   String?
-  department        String?
-  reporterIdFront   String?
-  reporterIdBack    String?
-  reporterIdNumber  String?
-  reporterIp        String?
-  reporterUserAgent String?
-  reporterDeviceType String?
-  reporterIsProxy   Boolean  @default(false)
+  reporterName        String
+  reporterLastName    String
+  reporterPhone       String
+  reporterEmail       String?
+  reporterAddress     String?
+  reporterCity        String?
+  reporterState       String?
+  reporterZipCode     String?
+  department          String?
+  reporterIdFront     String?
+  reporterIdBack      String?
+  reporterIdNumber    String?
+  reporterIp          String?
+  reporterUserAgent   String?
+  reporterDeviceType  String?
+  reporterIsProxy     Boolean   @default(false)
   reporterVpnProvider String?
   reporterNationality String?
-  
+
   // Datos de la persona desaparecida
-  missingName       String
-  missingLastName   String
-  missingBirthDate  DateTime
-  missingGender     String
-  missingHeight     Float?
-  missingWeight     Float?
-  missingClothing   String?
-  missingLastSeen   DateTime?
+  missingName         String
+  missingLastName     String
+  missingBirthDate    DateTime
+  missingGender       String
+  missingHeight       Float?
+  missingWeight       Float?
+  missingClothing     String?
+  missingLastSeen     DateTime?
   missingLastLocation String?
-  missingDescription String?
-  missingNationality String?
-  
+  missingDescription  String?
+  missingNationality  String?
+  missingIdNumber     String? // Documento de la persona desaparecida (opcional)
+  relationship        String?
+
   // Nuevos campos para características físicas
-  eyeColor          String?  // marrón, ámbar, verde, avellana, azul, gris, otros
-  hairType          String?  // liso, ondulado, rizado, afro
-  hairLength        String?  // largo, mediano, corto
-  hairColor         String?  // negro, castaño, rubio, pelirrojo, teñido, otros
-  skinColor         String?  // clara, media, morena, oscura, otros
-  otherFeatures     String?  // campo libre para otras características
-  
+  eyeColor            String?
+  hairType            String?
+  hairLength          String?
+  hairColor           String?
+  skinColor           String?
+  otherFeatures       String?
+
   // Relaciones
-  userId            String
-  user              User      @relation(fields: [userId], references: [id])
-  comments          Comment[]
-  photos            Photo[]
-  reporterLatitude  Float?
-  reporterLongitude Float?
-  caseActions       CaseAction[]
-  publicado         Boolean  @default(false)
-  relatoPublico     String?
+  userId              String
+  user                User        @relation(fields: [userId], references: [id])
+  comments            Comment[]
+  photos              Photo[]
+  reporterLatitude    Float?
+  reporterLongitude   Float?
+  caseActions         CaseAction[]
+  publicado           Boolean     @default(false)
+  relatoPublico       String?
+
+  // Relaciones para notas y adjuntos
+  internalNotes       InternalNote[]
+  attachments         Attachment[]
 }
 
-model Comment {
+model InternalNote {
   id        String   @id @default(cuid())
   content   String   @db.Text
-  ip        String
-  userAgent String?
-  deviceType String?
-  isProxy   Boolean  @default(false)
-  vpnProvider String?
   createdAt DateTime @default(now())
   reportId  String
   report    Report   @relation(fields: [reportId], references: [id])
-  nombre    String?
-  apellido  String?
-  cedula    String?
-  telefono  String?
-  anonimo   Boolean  @default(false)
-  status    CommentStatus @default(PENDIENTE)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("internal_notes")
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  fileName  String
+  fileUrl   String
+  fileType  String
+  fileSize  Int
+  createdAt DateTime @default(now())
+  reportId  String
+  report    Report   @relation(fields: [reportId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("attachments")
+}
+
+model Comment {
+  id            String        @id @default(cuid())
+  content       String        @db.Text
+  ip            String
+  userAgent     String?
+  deviceType    String?
+  isProxy       Boolean       @default(false)
+  vpnProvider   String?
+  createdAt     DateTime      @default(now())
+  reportId      String
+  report        Report        @relation(fields: [reportId], references: [id])
+  nombre        String?
+  apellido      String?
+  cedula        String?
+  telefono      String?
+  anonimo       Boolean       @default(false)
+  status        CommentStatus @default(PENDIENTE)
   moderatedById String?
-  moderatedBy   User?    @relation("ModeratedComments", fields: [moderatedById], references: [id])
+  moderatedBy   User?         @relation("ModeratedComments", fields: [moderatedById], references: [id])
   moderatedAt   DateTime?
 }
 

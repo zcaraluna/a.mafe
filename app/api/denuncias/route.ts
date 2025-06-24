@@ -106,7 +106,6 @@ export async function POST(req: NextRequest) {
         reporterName,
         reporterLastName,
         reporterPhone,
-        reporterEmail: formData.get('email') as string || undefined,
         reporterAddress: formData.get('address') as string || undefined,
         reporterCity: formData.get('city') as string || undefined,
         reporterState: formData.get('state') as string || undefined,
@@ -134,22 +133,25 @@ export async function POST(req: NextRequest) {
         missingLastLocation: formData.get('missingLastLocation') as string || undefined,
         missingDescription: story,
         missingNationality,
+        missingIdNumber: missingId,
         eyeColor,
         hairType,
         hairLength,
         hairColor,
         skinColor,
         otherFeatures,
+        relationship,
         userId: 'cmbtjo3bn000030ln4ampbhdo',
       },
     });
 
-    // Guardar las fotos en la tabla Photo
+    // Guardar las fotos en la tabla Photo como públicas
     if (missingPhotosUrls.length > 0) {
       await prisma.photo.createMany({
         data: missingPhotosUrls.map(url => ({
           url,
           reportId: report.id,
+          publica: true,
         })),
       });
     }

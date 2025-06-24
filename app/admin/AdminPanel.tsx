@@ -6,10 +6,33 @@ import html2canvas from 'html2canvas';
 import Cropper from 'react-easy-crop';
 import { signOut } from 'next-auth/react';
 import NavBar from '../../components/NavBar';
+import { formatDateTime, formatDate } from '../../lib/date-utils';
 
 interface Photo {
   id: string;
   url: string;
+}
+
+interface UserReference {
+  name: string;
+  email: string;
+}
+
+interface InternalNote {
+  id: string;
+  content: string;
+  createdAt: string;
+  user: UserReference;
+}
+
+interface Attachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+  createdAt: string;
+  user: UserReference;
 }
 
 interface Report {
@@ -56,8 +79,12 @@ interface Report {
   reporterIsProxy?: boolean;
   reporterNationality?: string;
   missingNationality?: string;
+  missingIdNumber?: string;
   reporterVpnProvider?: string;
+  relationship?: string;
   photos?: Photo[];
+  internalNotes?: InternalNote[];
+  attachments?: Attachment[];
 }
 
 const STATUS_LABELS = {
@@ -175,7 +202,7 @@ function PosterAfiche({ report, foto, relato, otrosRasgos, ultimaVestimenta, tel
         <div className="info" style={{ flex: 1.2, fontSize: '12pt', lineHeight: 1.6 }}>
           <p><strong>Edad:</strong> {edad} años</p>
           <p><strong>Nacionalidad:</strong> Paraguaya</p>
-          <p><strong>Fecha de extravío:</strong> {new Date(report.createdAt).toLocaleDateString()}</p>
+          <p><strong>Visto por última vez:</strong> {report.missingLastSeen ? new Date(report.missingLastSeen).toLocaleDateString() : 'No especificado'}</p>
           <p><strong>Género:</strong> {report.missingGender}</p>
           <p><strong>Peso:</strong> {report.missingWeight ? `${report.missingWeight} kg` : 'No especificado'}</p>
           <p><strong>Estatura:</strong> {report.missingHeight ? `${report.missingHeight} cm` : 'No especificado'}</p>
@@ -232,6 +259,29 @@ function getImageUrl(url: string | Photo): string {
   return url.url.startsWith('/uploads/') ? url.url.replace('/uploads/', '/api/uploads/') : url.url;
 }
 
+// Nuevo componente para el visor de imágenes
+function ImageViewer({ src, onClose }) {
+  if (!src) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
+        <img src={src} alt="Vista ampliada" className="max-w-full max-h-[90vh] object-contain" />
+        <button 
+          onClick={onClose} 
+          className="absolute top-2 right-2 bg-white rounded-full p-2 text-black leading-none"
+          aria-label="Cerrar"
+        >
+          &times;
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPanel() {
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -273,6 +323,11 @@ export default function AdminPanel() {
   const [departmentFilter, setDepartmentFilter] = useState<string>("");
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [expandedImg, setExpandedImg] = useState<string | null>(null);
+  const [viewerSrc, setViewerSrc] = useState<string | null>(null);
+  const [internalNotes, setInternalNotes] = useState<InternalNote[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [fileToUpload, setFileToUpload] = useState<File | null>(null);
 
   const onCropComplete = useCallback((_, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
@@ -360,6 +415,70 @@ export default function AdminPanel() {
     setShowTechnicalDetails(false);
   }, [selectedReport]);
 
+  useEffect(() => {
+    if (selectedReport) {
+      // Cargar notas internas
+      fetch(`/api/admin/denuncias/${selectedReport.id}/notes`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setInternalNotes(data.notes);
+          }
+        });
+
+      // Cargar adjuntos
+      fetch(`/api/admin/denuncias/${selectedReport.id}/attachments`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setAttachments(data.attachments);
+          }
+        });
+    }
+  }, [selectedReport]);
+  
+  const handleNoteSubmit = async () => {
+    if (!selectedReport || !newNote.trim()) return;
+
+    const res = await fetch(`/api/admin/denuncias/${selectedReport.id}/notes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: newNote }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setInternalNotes([data.note, ...internalNotes]);
+      setNewNote('');
+    } else {
+      alert('Error al guardar la nota');
+    }
+  };
+
+  const handleAttachmentSubmit = async () => {
+    if (!selectedReport || !fileToUpload) return;
+
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+
+    const res = await fetch(`/api/admin/denuncias/${selectedReport.id}/attachments`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      setAttachments([data.attachment, ...attachments]);
+      setFileToUpload(null);
+      // Limpiar el input de archivo
+      const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+
+    } else {
+      alert('Error al subir el archivo');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <NavBar />
@@ -428,7 +547,7 @@ export default function AdminPanel() {
                 >
                   <td className="px-5 py-3">{report.reporterName} {report.reporterLastName}</td>
                   <td className="px-5 py-3">{report.missingName} {report.missingLastName}</td>
-                  <td className="px-5 py-3">{new Date(report.createdAt).toLocaleDateString()}</td>
+                  <td className="px-5 py-3">{formatDateTime(report.createdAt)}</td>
                   <td className="px-5 py-3">
                     <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold text-white ${STATUS_COLORS[report.status]}`}>
                       {STATUS_LABELS[report.status]}
@@ -477,7 +596,7 @@ export default function AdminPanel() {
             {/* Mensaje de auditoría arriba del código de denuncia */}
             {(selectedReport.status !== 'PENDING' && (selectedReport.statusChangedByName || selectedReport.statusChangedBy) && selectedReport.statusChangedAt) && (
               <div className={`mb-4 text-sm font-semibold ${['CERRADO_VIVA','CERRADO_FALLECIDA'].includes(selectedReport.status) ? 'text-black' : (selectedReport.status === 'APPROVED' ? 'text-green-700' : 'text-red-700')}`}>
-                Denuncia {STATUS_LABELS[selectedReport.status].toUpperCase()} por <b>{selectedReport.statusChangedByName || selectedReport.statusChangedBy}</b> en fecha {new Date(selectedReport.statusChangedAt).toLocaleDateString()} a las {new Date(selectedReport.statusChangedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                Denuncia {STATUS_LABELS[selectedReport.status].toUpperCase()} por <b>{selectedReport.statusChangedByName || selectedReport.statusChangedBy}</b> en fecha {formatDateTime(selectedReport.statusChangedAt)}
               </div>
             )}
             {selectedReport.code && <div className="mb-2"><b>Código de denuncia:</b> {selectedReport.code}</div>}
@@ -519,7 +638,7 @@ export default function AdminPanel() {
                         src={getImageUrl(selectedReport.reporterIdFront)} 
                         alt="Cédula frente" 
                         className="h-24 object-contain border rounded cursor-pointer hover:opacity-80" 
-                        onClick={() => setExpandedImg(getImageUrl(selectedReport.reporterIdFront))}
+                        onClick={() => setViewerSrc(getImageUrl(selectedReport.reporterIdFront))}
                       />
                     </div>
                   )}
@@ -529,7 +648,7 @@ export default function AdminPanel() {
                         src={getImageUrl(selectedReport.reporterIdBack)} 
                         alt="Cédula dorso" 
                         className="h-24 object-contain border rounded cursor-pointer hover:opacity-80" 
-                        onClick={() => setExpandedImg(getImageUrl(selectedReport.reporterIdBack))}
+                        onClick={() => setViewerSrc(getImageUrl(selectedReport.reporterIdBack))}
                       />
                     </div>
                   )}
@@ -561,21 +680,16 @@ export default function AdminPanel() {
             {/* Datos de la persona desaparecida */}
             <div className="mb-2"><b>Persona desaparecida:</b> {selectedReport.missingName} {selectedReport.missingLastName}</div>
             {selectedReport.missingNationality && (
-              <div className="mb-2"><b>Nacionalidad del desaparecido:</b> {selectedReport.missingNationality}</div>
+              <div className="mb-2"><b>Nacionalidad:</b> {selectedReport.missingNationality}</div>
             )}
-            <div className="mb-2"><b>Fecha de nacimiento:</b> {new Date(selectedReport.missingBirthDate).toLocaleDateString()}</div>
-            <div className="mb-2"><b>Edad:</b> {(() => {
-              const birth = new Date(selectedReport.missingBirthDate);
-              const today = new Date();
-              let age = today.getFullYear() - birth.getFullYear();
-              const m = today.getMonth() - birth.getMonth();
-              if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-              return age;
-            })()} años</div>
+            {selectedReport.missingIdNumber && (
+              <div className="mb-2"><b>Documento:</b> {selectedReport.missingIdNumber}</div>
+            )}
+            <div className="mb-2"><b>Relación con el desaparecido:</b> {selectedReport.relationship || 'No especificado'}</div>
             <div className="mb-2"><b>Género:</b> {selectedReport.missingGender}</div>
-            <div className="mb-2"><b>Fecha de denuncia:</b> {new Date(selectedReport.createdAt).toLocaleDateString()}</div>
+            <div className="mb-2"><b>Fecha de denuncia:</b> {formatDateTime(selectedReport.createdAt)}</div>
             {selectedReport.missingLastSeen && (
-              <div className="mb-2"><b>Visto por última vez:</b> {new Date(selectedReport.missingLastSeen).toLocaleDateString()}</div>
+              <div className="mb-2"><b>Visto por última vez:</b> {formatDate(selectedReport.missingLastSeen)}</div>
             )}
             <div className="mb-2"><b>Color de ojos:</b> {selectedReport.eyeColor}</div>
             <div className="mb-2"><b>Tipo de cabello:</b> {selectedReport.hairType}</div>
@@ -602,8 +716,8 @@ export default function AdminPanel() {
                       <img
                         src={getImageUrl(photo)}
                         alt={`Foto ${i + 1}`}
-                        className={`h-24 w-24 object-cover border rounded cursor-pointer ${selectedPosterPhoto === photo ? 'border-blue-500 border-2' : ''}`}
-                        onClick={() => setSelectedPosterPhoto(photo)}
+                        className={`h-24 w-24 object-cover border rounded cursor-pointer`}
+                        onClick={() => setViewerSrc(getImageUrl(photo))}
                       />
                     </div>
                   ))}
@@ -641,13 +755,91 @@ export default function AdminPanel() {
                     <li key={action.id} className="border rounded p-2 bg-gray-50">
                       <div><b>Acción:</b> {action.action}</div>
                       <div><b>Usuario:</b> {action.user?.name || '(desconocido)'}</div>
-                      <div><b>Fecha:</b> {new Date(action.createdAt).toLocaleString()}</div>
+                      <div><b>Fecha:</b> {formatDateTime(action.createdAt)}</div>
                       {action.note && <div><b>Nota interna:</b> {action.note}</div>}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
+            {/* SECCIÓN DE NOTAS INTERNAS */}
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-xl font-bold mb-3">Notas Internas</h3>
+              <div className="mb-4">
+                <textarea
+                  className="w-full p-2 border rounded"
+                  rows={3}
+                  placeholder="Escribir una nueva nota..."
+                  value={newNote}
+                  onChange={(e) => setNewNote(e.target.value)}
+                />
+                <button
+                  className="mt-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+                  onClick={handleNoteSubmit}
+                  disabled={!newNote.trim()}
+                >
+                  Guardar Nota
+                </button>
+              </div>
+              <div className="space-y-3 max-h-48 overflow-y-auto">
+                {internalNotes.length > 0 ? (
+                  internalNotes.map(note => (
+                    <div key={note.id} className="bg-gray-100 p-3 rounded">
+                      <p className="text-gray-800">{note.content}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Por: {note.user.name} el {formatDateTime(note.createdAt)}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No hay notas internas.</p>
+                )}
+              </div>
+            </div>
+
+            {/* SECCIÓN DE ARCHIVOS ADJUNTOS */}
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-xl font-bold mb-3">Archivos Adjuntos</h3>
+              <div className="mb-4">
+                <input
+                  id="file-upload"
+                  type="file"
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  onChange={(e) => setFileToUpload(e.target.files ? e.target.files[0] : null)}
+                />
+                <button
+                  className="mt-2 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+                  onClick={handleAttachmentSubmit}
+                  disabled={!fileToUpload}
+                >
+                  Subir Archivo
+                </button>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {attachments.length > 0 ? (
+                  attachments.map(att => (
+                    <div key={att.id} className="bg-gray-100 p-2 rounded flex justify-between items-center">
+                      <div>
+                        <a
+                          href={att.fileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline"
+                        >
+                          {att.fileName}
+                        </a>
+                        <p className="text-xs text-gray-500">
+                          Subido por {att.user.name} el {formatDateTime(att.createdAt)} ({(att.fileSize / 1024).toFixed(2)} KB)
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500">No hay archivos adjuntos.</p>
+                )}
+              </div>
+            </div>
+
             {/* Acciones según estado */}
             <div className="flex flex-wrap justify-center gap-4 mb-8 w-full">
               {selectedReport.status === 'PENDING' && (
@@ -748,6 +940,9 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
+      {/* Visor de imágenes */}
+      <ImageViewer src={viewerSrc} onClose={() => setViewerSrc(null)} />
+
       {/* Modal de confirmación */}
       {confirmModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -990,8 +1185,18 @@ export default function AdminPanel() {
                       <img
                         src={getImageUrl(photo)}
                         alt={`Foto ${i + 1}`}
-                        className={`h-24 w-24 object-cover border rounded cursor-pointer ${selectedPosterPhoto === photo ? 'border-blue-500 border-2' : ''}`}
-                        onClick={() => setSelectedPosterPhoto(photo)}
+                        className={`h-24 w-24 object-cover border rounded cursor-pointer`}
+                        onClick={() => {
+                          const imageUrl = getImageUrl(photo);
+                          setCropModal({
+                            src: imageUrl,
+                            onCrop: (cropped) => {
+                              setUploadedPosterPhoto(cropped);
+                              setSelectedPosterPhoto(null);
+                              setCropModal(null);
+                            }
+                          });
+                        }}
                       />
                     </div>
                   ))
@@ -1271,26 +1476,6 @@ export default function AdminPanel() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-      {/* Modal de imagen expandida */}
-      {expandedImg && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[60]"
-          onClick={() => setExpandedImg(null)}
-        >
-          <img 
-            src={expandedImg} 
-            alt="Imagen expandida" 
-            className="max-h-[90vh] max-w-[90vw] object-contain"
-            onClick={(e) => e.stopPropagation()}
-          />
-          <button 
-            className="absolute top-4 right-4 text-white text-4xl hover:text-gray-300"
-            onClick={() => setExpandedImg(null)}
-          >
-            &times;
-          </button>
         </div>
       )}
     </div>

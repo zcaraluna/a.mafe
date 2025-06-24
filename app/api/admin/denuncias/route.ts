@@ -43,6 +43,8 @@ export async function GET(req: NextRequest) {
           missingLastName: true,
           missingBirthDate: true,
           missingGender: true,
+          missingNationality: true,
+          missingIdNumber: true,
           eyeColor: true,
           hairType: true,
           hairLength: true,
@@ -77,6 +79,7 @@ export async function GET(req: NextRequest) {
           reporterDeviceType: true,
           reporterIsProxy: true,
           reporterVpnProvider: true,
+          relationship: true,
         },
       })
     ]);

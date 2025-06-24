@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { formatDateTime } from '../../../../lib/date-utils';
 
 interface PreviewData {
   nombre: string;
@@ -102,7 +103,7 @@ export default function AlertPreview() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-600">Fecha de Nacimiento</label>
-                  <p className="mt-1">{new Date(previewData.fechaNacimiento).toLocaleDateString()}</p>
+                  <p className="mt-1">{formatDateTime(previewData.fechaNacimiento)}</p>
                 </div>
 
                 <div>

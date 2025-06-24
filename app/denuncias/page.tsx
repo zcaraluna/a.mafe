@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import NavBar from '../../components/NavBar';
 import { useLanguage } from '../../components/LanguageSelector';
+import { formatDateTime, formatDate } from '../../lib/date-utils';
 
 const textos = {
   es: {
@@ -81,7 +82,7 @@ export default function DenunciasPublicadas() {
       <NavBar />
 
       {/* Banner principal de ancho completo */}
-      <div className="relative w-full h-32 sm:h-48 mb-4 sm:mb-6">
+      <div className="relative w-full h-32 sm:h-48 mb-4 sm:mb-6 mt-16">
         <img
           src="/src/Gobierno_del_Paraguay_Palacio.jpg"
           alt="Gobierno del Paraguay"
@@ -152,7 +153,10 @@ export default function DenunciasPublicadas() {
                       </h2>
                       <div className="text-sm text-gray-600 space-y-1">
                         <p><span className="font-semibold">{t.departamento}</span> {denuncia.department || 'No especificado'}</p>
-                        <p><span className="font-semibold">{t.ultimaVezVisto}</span> {new Date(denuncia.createdAt).toLocaleDateString()}</p>
+                        <p>
+                          <span className="font-semibold">{t.ultimaVezVisto}</span>{' '}
+                          {denuncia.missingLastSeen ? formatDate(denuncia.missingLastSeen) : 'No especificado'}
+                        </p>
                       </div>
                       <Link 
                         href={`/denuncias/${denuncia.id}`}

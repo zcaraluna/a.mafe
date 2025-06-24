@@ -41,8 +41,16 @@ function CenterMapOnLocation({ location }: { location: [number, number] | null }
 }
 
 export default function MapaFormulario({ location, setLocation }: MapaFormularioProps) {
+  useEffect(() => {
+    // Forzar z-index bajo a los elementos de Leaflet
+    const panes = document.querySelectorAll('.leaflet-pane, .leaflet-control');
+    panes.forEach(el => {
+      (el as HTMLElement).style.zIndex = '1';
+    });
+  }, []);
+
   return (
-    <div className="h-[300px] border rounded">
+    <div className="h-[300px] border rounded mt-20" style={{zIndex: 1, position: 'relative'}}>
       <MapContainer
         center={(location ? location : [-25.2822, -57.6351]) as LatLngExpression}
         zoom={13}
